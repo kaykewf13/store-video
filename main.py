@@ -1,33 +1,34 @@
-from fastapi import FastAPI
+import requests
 import os
-from dotenv import load_dotenv
 
-app = FastAPI()
-load_dotenv()
+def gerar_narracao_viral(texto, voice_id="EXAV8jWnz4Wbc086B86c"): # ID da Bella (exemplo)
+    api_key = os.getenv("ELEVEN_API_KEY")
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
-# Configurações fixas
-AFFILIATE_ID = "SR8YR"
-BRAND_NAME = "@kaykestore"
-
-@app.get("/")
-def home():
-    return {"status": "Sistema Kayke Store Online"}
-
-@app.post("/gerar-video/")
-async def gerar_video(url_shein: str):
-    # 1. Módulo de Scraping (Simulado)
-    print(f"Extraindo dados de: {url_shein}")
-    
-    # 2. Módulo de Narração (ElevenLabs)
-    # voice = generate(text="Confira esse achado...", api_key=os.getenv("ELEVEN_API"))
-    
-    # 3. Módulo de Edição (MoviePy)
-    # Aqui entra a lógica de montagem das fotos + QR Code
-    
-    link_final = f"{url_shein}?affiliate_id={AFFILIATE_ID}"
-    
-    return {
-        "mensagem": "Vídeo em processamento",
-        "link_afiliado": link_final,
-        "loja": BRAND_NAME
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": api_key
     }
+
+    data = {
+        "text": texto,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {
+            "stability": 0.5,
+            "similarity_boost": 0.75,
+            "style": 0.0,
+            "use_speaker_boost": True
+        }
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+
+    if response.status_code == 200:
+        file_path = "narração_temp.mp3"
+        with open(file_path, "wb") as f:
+            f.write(response.content)
+        return file_path
+    else:
+        print(f"Erro ElevenLabs: {response.text}")
+        return None
