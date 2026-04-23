@@ -1,32 +1,32 @@
-from moviepy.editor import ImageClip, concatenate_videoclips, AudioFileClip, CompositeVideoClip
+from moviepy.editor import ImageClip, concatenate_videoclips, AudioFileClip
 import qrcode
-from PIL import Image
+import requests
+from io import BytesIO
 
-def criar_video_final(imagens_paths, audio_path, qr_path, output_name="video_final.mp4"):
-    # 1. Carrega o áudio para saber a duração total
+def baixar_imagem(url):
+    response = requests.get(url)
+    return BytesIO(response.content)
+
+def gerar_qr(link):
+    qr = qrcode.QRCode(box_size=10, border=2)
+    qr.add_data(link)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="gold", back_color="black")
+    img.save("qr.png")
+    return "qr.png"
+
+def montar_video(dados, audio_path, qr_path):
     audio = AudioFileClip(audio_path)
-    duracao_total = audio.duration
-    
-    # 2. Processa as imagens (slideshow)
-    n_fotos = len(imagens_paths)
-    duracao_por_foto = (duracao_total - 3) / n_fotos  # Reserva 3s para o QR Code final
+    duracao_foto = audio.duration / len(dados['fotos'])
     
     clips = []
-    for img_path in imagens_paths:
-        clip = ImageClip(img_path).set_duration(duracao_por_foto)
-        # Redimensiona para o padrão Reels/TikTok (1080x1920)
-        clip = clip.resize(height=1920).set_position('center')
+    for img_url in dados['fotos']:
+        # Baixa e processa cada imagem
+        img_data = baixar_imagem(img_url)
+        clip = ImageClip(img_url).set_duration(duracao_foto)
+        clip = clip.resize(height=1920).set_position('center') # Formato Reels
         clips.append(clip)
-    
-    # 3. Adiciona o Frame Final com o QR Code
-    qr_frame = ImageClip(qr_path).set_duration(3).resize(width=600).set_position('center')
-    clips.append(qr_frame)
-    
-    # 4. Monta o vídeo
-    video = concatenate_videoclips(clips, method="compose")
-    video = video.set_audio(audio)
-    
-    # 5. Exporta (Otimizado para mobile)
-    video.write_videofile(output_name, fps=24, codec="libx264", audio_codec="aac")
-    
-    return output_name
+        
+    video = concatenate_videoclips(clips, method="compose").set_audio(audio)
+    video.write_videofile("video_final.mp4", fps=24, codec="libx264")
+    return "video_final.mp4"
