@@ -1,0 +1,9 @@
+moviepy==1.0.3
+requests==2.31.0
+elevenlabs==0.2.27
+playwright==1.41.0
+python-dotenv==1.0.0
+qrcode==7.4.2
+Pillow==10.0.0
+fastapi==0.104.1
+uvicorn==0.24.0
