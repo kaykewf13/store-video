@@ -22,7 +22,6 @@ name: Build and deploy Python app to Azure Web App
 env:
   AZURE_WEBAPP_NAME: your-app-name  # set this to the name of your Azure Web App
   PYTHON_VERSION: '3.8'              # set this to the Python version to use
-  AZURE_WEBAPP_PUBLISH_PROFILE_CONFIGURED: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE != '' }}
 
 on:
   push:
@@ -65,7 +64,7 @@ jobs:
             !venv/
 
   deploy:
-    if: ${{ env.AZURE_WEBAPP_NAME != 'your-app-name' && fromJSON(env.AZURE_WEBAPP_PUBLISH_PROFILE_CONFIGURED) }}
+    if: ${{ env.AZURE_WEBAPP_NAME != 'your-app-name' && secrets.AZURE_WEBAPP_PUBLISH_PROFILE != '' }}
     permissions:
       contents: none
     runs-on: ubuntu-latest
