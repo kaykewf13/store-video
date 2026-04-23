@@ -7,7 +7,7 @@ import os
 
 app = FastAPI()
 
-@app.get("/gerar-video/")
+@app.get("/gerar-video/") # Use GET para testar pelo navegador
 async def criar_video(url: str = Query(..., alias="url")):
     # O SEGREDO ESTÁ AQUI: Adicionamos o 'await'
     dados = await scraper.get_shein_data(url)
