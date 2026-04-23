@@ -1,33 +1,32 @@
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse, JSONResponse
-import scraper
-import audio_engine
-import video_engine
+import scraper, audio_engine, video_engine
 import os
 
 app = FastAPI()
 
-@app.get("/")
-async def home():
-    return {"status": "Kayke Store Online", "msg": "Use /gerar-video?url=LINK_DA_SHEIN"}
-
-# Aceita tanto /gerar-video quanto /criar-video para não dar erro
 @app.get("/gerar-video")
-@app.get("/criar-video")
-async def processar(url: str = Query(...)):
+async def criar_video(url: str = Query(...)):
+    # PASSO 1: SCRAPER
     try:
-        # 1. Scraper
         dados = await scraper.get_shein_data(url)
-        
-        # 2. Audio
-        texto = f"Olha esse achadinho na SHEIN! Esse {dados['nome']} por apenas {dados['preco']}. Qualidade nota dez! Link SR8YR na bio da @kaykestore!"
-        audio_path = audio_engine.gerar_narracao(texto)
-        
-        # 3. Video
-        link_afiliado = f"{url}&affiliate_id=SR8YR"
-        qr_path = video_engine.gerar_qr(link_afiliado)
-        video_path = video_engine.montar_video(dados, audio_path, qr_path)
-        
-        return FileResponse(video_path, media_type='video/mp4')
     except Exception as e:
-        return JSONResponse(status_code=500, content={"erro": str(e)})
+        return JSONResponse(status_code=500, content={"erro": "Falha no Scraper", "detalhes": str(e)})
+
+    # PASSO 2: ÁUDIO
+    try:
+        texto = f"Olha esse achadinho na SHEIN! Esse {dados['nome']} por apenas {dados['preco']}. Link SR8YR na bio da @kaykestore!"
+        audio_path = audio_engine.gerar_narracao(texto)
+        if not audio_path:
+            return JSONResponse(status_code=500, content={"erro": "ElevenLabs negou o acesso. Verifique sua API KEY."})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"erro": "Falha no Motor de Voz", "detalhes": str(e)})
+
+    # PASSO 3: VÍDEO
+    try:
+        qr_path = video_engine.gerar_qr(f"{url}&affiliate_id=SR8YR")
+        video_path = video_engine.montar_video(dados, audio_path, qr_path)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"erro": "Falha na Montagem do Vídeo", "detalhes": str(e)})
+
+    return FileResponse(video_path, media_type='video/mp4', filename="video_kaykestore.mp4")
