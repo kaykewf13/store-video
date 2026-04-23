@@ -12,31 +12,36 @@ def gerar_qr(link):
     return "qr.png"
 
 def montar_video(dados, audio_path, qr_path):
+    if not audio_path or not os.path.exists(audio_path):
+        raise Exception("Falha no áudio: O arquivo de narração não foi gerado.")
+
     audio = AudioFileClip(audio_path)
-    duracao_total = audio.duration
     
-    # Filtra imagens válidas
-    fotos_validas = [f for f in dados['fotos'] if f.startswith('http')]
-    duracao_foto = duracao_total / (len(fotos_validas) + 1) # +1 para o QR code
+    # Se não houver fotos, usamos uma imagem padrão para não dar erro 500
+    fotos_validas = [f for f in dados.get('fotos', []) if f.startswith('http')]
+    
+    if not fotos_validas:
+        # Imagem de segurança caso o scraper falhe nas fotos
+        fotos_validas = ["https://via.placeholder.com/1080x1920.png?text=Confira+na+Kayke+Store"]
+
+    duracao_foto = audio.duration / (len(fotos_validas) + 1)
     
     clips = []
     for i, img_url in enumerate(fotos_validas):
-        # Salva imagem temporariamente
         temp_name = f"temp_{i}.jpg"
-        img_data = requests.get(img_url).content
-        with open(temp_name, 'wb') as f:
-            f.write(img_data)
-            
-        clip = ImageClip(temp_name).set_duration(duracao_foto)
-        clip = clip.resize(height=1920).set_position('center')
-        clips.append(clip)
+        try:
+            img_data = requests.get(img_url, timeout=10).content
+            with open(temp_name, 'wb') as f:
+                f.write(img_data)
+            clip = ImageClip(temp_name).set_duration(duracao_foto).resize(height=1920).set_position('center')
+            clips.append(clip)
+        except:
+            continue
         
-    # Adiciona o QR Code no final
     qr_clip = ImageClip(qr_path).set_duration(duracao_foto).resize(width=600).set_position('center')
     clips.append(qr_clip)
     
     video = concatenate_videoclips(clips, method="compose").set_audio(audio)
     output = "video_final.mp4"
     video.write_videofile(output, fps=24, codec="libx264", audio_codec="aac")
-    
     return output
