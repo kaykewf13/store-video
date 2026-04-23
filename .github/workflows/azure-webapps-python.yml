@@ -65,7 +65,7 @@ jobs:
             !venv/
 
   deploy:
-    if: ${{ env.AZURE_WEBAPP_NAME != 'your-app-name' && env.AZURE_WEBAPP_PUBLISH_PROFILE_CONFIGURED == 'true' }}
+    if: ${{ env.AZURE_WEBAPP_NAME != 'your-app-name' && fromJSON(env.AZURE_WEBAPP_PUBLISH_PROFILE_CONFIGURED) }}
     permissions:
       contents: none
     runs-on: ubuntu-latest
